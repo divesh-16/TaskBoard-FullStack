@@ -1,0 +1,6 @@
+[Bb]in/
+[Oo]bj/
+*.db
+*.db-journal
+.vs/
+.vscode/
