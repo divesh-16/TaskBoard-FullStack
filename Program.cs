@@ -30,6 +30,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ITaskService, TaskService>(); // Add this line
 
+builder.Services.AddScoped<ICommentService, CommentService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
