@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TaskBoard.Api.Data;
+using TaskBoard.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +26,9 @@ builder.Services.AddCors(options =>
     });
 });
 
+
 builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<ITaskService, TaskService>(); // Add this line
 
 var app = builder.Build();
 
