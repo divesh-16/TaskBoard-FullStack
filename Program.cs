@@ -4,48 +4,51 @@ using TaskBoard.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// 1. Services
 builder.Services.AddControllers();
-
-// Register the DbContext for SQLite
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Add Swagger support for testing APIs
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Enable CORS so React can talk to the API
+// Register DbContext
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Single, clean CORS policy
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    options.AddPolicy("AllowReactApp", policy =>
     {
         policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowAnyMethod();
     });
 });
 
-
+// Dependency Injection
 builder.Services.AddScoped<IProjectService, ProjectService>();
-builder.Services.AddScoped<ITaskService, TaskService>(); // Add this line
-
+builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// 2. Middleware Pipeline (Order is critical!)
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseCors(); 
+// Ensure Routing is enabled (implicit or explicit)
+app.UseRouting();
+
+// CORS must be between Routing and Authorization
+app.UseCors("AllowReactApp");
+
 app.UseAuthorization();
+
 app.MapControllers();
 
-// Seed the database
+// 3. Seed Database
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;

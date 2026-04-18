@@ -6,7 +6,7 @@ using TaskBoard.Api.Services;
 namespace TaskBoard.Api.Controllers;
 
 [ApiController]
-[Route("api/projects/{projectId}/[controller]")]
+[Route("api/[controller]")] // Route: api/tasks
 public class TasksController : ControllerBase
 {
     private readonly ITaskService _taskService;
@@ -17,29 +17,38 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TaskDto>>> GetTasks(
-        int projectId, 
-        [FromQuery] Models.TaskStatus? status, 
-        [FromQuery] TaskPriority? priority, 
-        [FromQuery] int page = 1, 
-        [FromQuery] int pageSize = 10)
+public async Task<ActionResult<IEnumerable<TaskDto>>> GetTasks(
+    [FromQuery] int projectId, 
+    [FromQuery] Models.TaskStatus? status, 
+    [FromQuery] TaskPriority? priority, // Maps from ?priority=3
+    [FromQuery] int page = 1, 
+    [FromQuery] int pageSize = 100)
     {
+        // Pass the priority filter directly to the service
         var tasks = await _taskService.GetTasksAsync(projectId, status, priority, page, pageSize);
         return Ok(tasks);
     }
 
-    [HttpPost]
-    public async Task<ActionResult<TaskDto>> CreateTask(int projectId, TaskDto taskDto)
+    [HttpPut("{taskId}")] 
+    public async Task<IActionResult> UpdateStatus(int taskId, [FromBody] TaskUpdateDto updateDto)
     {
-        var created = await _taskService.CreateTaskAsync(projectId, taskDto);
-        return Ok(created);
-    }
-
-    [HttpPatch("{taskId}/status")]
-    public async Task<IActionResult> UpdateStatus(int taskId, [FromBody] Models.TaskStatus status)
-    {
-        var success = await _taskService.UpdateTaskStatusAsync(taskId, status);
+        var success = await _taskService.UpdateTaskStatusAsync(taskId, updateDto.Status);
         if (!success) return NotFound();
         return NoContent();
     }
+
+    [HttpPost("{taskId}/comments")]
+    public async Task<IActionResult> AddComment(int taskId, [FromBody] CommentDto commentDto)
+    {
+        // Collaboration logic
+        var success = await _taskService.AddCommentAsync(taskId, commentDto);
+        if (!success) return NotFound();
+        return Ok();
+    }
+}
+
+// Ensure this is HERE, inside the namespace TaskBoard.Api.Controllers
+public class TaskUpdateDto
+{
+    public Models.TaskStatus Status { get; set; }
 }

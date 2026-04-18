@@ -10,4 +10,5 @@ public interface ITaskService
     Task<TaskDto?> GetTaskByIdAsync(int id);
     Task<TaskDto> CreateTaskAsync(int projectId, TaskDto taskDto);
     Task<bool> UpdateTaskStatusAsync(int taskId, Models.TaskStatus newStatus);
+    Task<bool> AddCommentAsync(int taskId, CommentDto commentDto);
 }

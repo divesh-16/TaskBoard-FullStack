@@ -15,31 +15,42 @@ public class TaskService : ITaskService
     }
 
     public async Task<IEnumerable<TaskDto>> GetTasksAsync(int projectId, Models.TaskStatus? status, TaskPriority? priority, int page, int pageSize)
-    {
-        var query = _context.Tasks.Where(t => t.ProjectId == projectId).AsQueryable();
+{
+    // 1. Include the Comments in the query using Eager Loading
+    var query = _context.Tasks
+        .Include(t => t.Comments) 
+        .Where(t => t.ProjectId == projectId)
+        .AsQueryable();
 
-        // Filtering logic
-        if (status.HasValue)
-            query = query.Where(t => t.Status == status.Value);
-        
-        if (priority.HasValue)
-            query = query.Where(t => t.Priority == priority.Value);
+    // Filtering logic
+    if (status.HasValue)
+        query = query.Where(t => t.Status == status.Value);
+    
+    if (priority.HasValue)
+        query = query.Where(t => t.Priority == priority.Value);
 
-        // Pagination logic: Skip the previous pages and take only the size requested
-        return await query
-            .OrderByDescending(t => t.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(t => new TaskDto
+    // Pagination and Projection
+    return await query
+        .OrderByDescending(t => t.CreatedAt)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .Select(t => new TaskDto
+        {
+            Id = t.Id,
+            Title = t.Title,
+            Priority = t.Priority,
+            Status = t.Status,
+            DueDate = t.DueDate,
+            // 2. Map the Comment models to CommentDtos
+            Comments = t.Comments.Select(c => new CommentDto
             {
-                Id = t.Id,
-                Title = t.Title,
-                Priority = t.Priority,
-                Status = t.Status,
-                DueDate = t.DueDate
-            })
-            .ToListAsync();
-    }
+                Author = c.Author,
+                Body = c.Body,
+                CreatedAt = c.CreatedAt
+            }).ToList()
+        })
+        .ToListAsync();
+}
 
     public async Task<TaskDto?> GetTaskByIdAsync(int id)
     {
@@ -72,6 +83,24 @@ public class TaskService : ITaskService
         if (task == null) return false;
 
         task.Status = newStatus;
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> AddCommentAsync(int taskId, CommentDto commentDto)
+    {
+        var task = await _context.Tasks.FindAsync(taskId);
+        if (task == null) return false;
+
+        var comment = new Comment
+        {
+            TaskId = taskId,
+            Author = commentDto.Author,
+            Body = commentDto.Body,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Comments.Add(comment);
         await _context.SaveChangesAsync();
         return true;
     }
